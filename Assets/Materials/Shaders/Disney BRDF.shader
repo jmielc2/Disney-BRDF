@@ -47,14 +47,14 @@ Shader "Custom/Disney BRDF"
             }
 
             float4 DisneyDiffuseModel(const float4 albedo, const float roughness, const float3 lightDir, const float3 viewDir, const float3 halfDir, const float3 normal) {
-                const float dotNL = (dot(normal, lightDir));
-                const float dotNV = (dot(normal, viewDir));
+                const float dotNL = dot(normal, lightDir);
+                const float dotNV = dot(normal, viewDir);
                 const float dotHV = saturate(dot(halfDir, viewDir));
 
                 const float fl = SchlickFresnelWeight(dotNL);
                 const float fv = SchlickFresnelWeight(dotNV);
                 const float retro = 0.5f + 2.0f * roughness * dotHV * dotHV;
-                return dotNL * albedo * UNITY_INV_PI * (1 + (retro - 1) * fl) * (1 + (retro - 1) * fv);
+                return albedo * UNITY_INV_PI * (1 + (retro - 1) * fl) * (1 + (retro - 1) * fv);
             }
 
             v2f vert(appdata i) {
@@ -69,12 +69,12 @@ Shader "Custom/Disney BRDF"
 
             float4 frag(v2f i) : SV_Target {
                 const float3 normal = normalize(i.normal);
-                const float3 lightDir = _WorldSpaceLightPos0.xyz;
+                const float3 lightDir = normalize(_WorldSpaceLightPos0.xyz);
                 const float3 viewDir = normalize(_WorldSpaceCameraPos.xyz - i.worldPos);
                 const float3 halfDir = normalize(lightDir + viewDir);
 
                 const float4 diffuse = DisneyDiffuseModel(_Color, _Roughness, lightDir, viewDir, halfDir, normal);
-                return diffuse;
+                return diffuse * saturate(dot(normal, lightDir));
             }
 
             ENDCG
