@@ -91,12 +91,21 @@ Shader "Custom/Disney BRDF"
                 return float3(reflectance, reflectance, reflectance);
             }
 
-            float3 DisneyMicrofacetMasking() {
-                return float3(1, 1, 1);
+            float3 DisneyMicrofacetMasking(const float cos_v, const float cos_d) {
+                const float roughness = saturate(_Roughness);
+                float alpha = 0.5 + roughness * 0.5;
+                alpha *= alpha;
+                if (cos_d / cos_v > 0) {
+                    const float sin_v = 1.0 - cos_v * cos_v;
+                    const float tan_v = sin_v / cos_v;
+                    const float a = 2.0 / (1.0 + sqrt(1 + alpha * alpha * tan_v * tan_v));
+                    return float3(a, a, a);
+                }
+                return float3(0, 0, 0);
             }
 
             float3 DisneyMicrofacetLobe(const float cos_l, const float cos_v, const float cos_d, const float cos_h, const float cos_ph) {
-                return DisneyMicrofacetDistribution(cos_h, cos_ph) * DisneyFresnel(cos_d) * DisneyMicrofacetMasking();
+                return DisneyMicrofacetDistribution(cos_h, cos_ph) * DisneyFresnel(cos_d) * DisneyMicrofacetMasking(cos_v, cos_d);
             }
             
             float3 DisneyBRDF(const float3 lightDir, const float3 viewDir, const float3 normal, const v2f i) {
@@ -125,6 +134,7 @@ Shader "Custom/Disney BRDF"
                 // return DisneyDiffuseLobe(cos_l, cos_v, cos_d);
                 // return DisneyMicrofacetLobe(cos_l, cos_v, cos_d, cos_h, cos_ph);
                 // return DisneyFresnel(cos_d);
+                // return DisneyMicrofacetMasking(cos_v, cos_d);
                 return DisneyDiffuseLobe(cos_l, cos_v, cos_d) + DisneyMicrofacetLobe(cos_l, cos_v, cos_d, cos_h, cos_ph) * recip_denom;
             }
 
